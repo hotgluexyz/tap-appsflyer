@@ -29,11 +29,11 @@ setup(
     },
     packages=['tap_appsflyer'],
     package_data={
-        'tap_appsflyer/schemas/': [
-            'installations.json',
-            'in_app_events.json',
-            'organic_installs.json',
-            'daily_report.json'
+        'tap_appsflyer': [
+            'schemas/installs.json',
+            'schemas/in_app_events.json',
+            'schemas/organic_installs.json',
+            'schemas/daily_report.json'
         ],
     },
     include_package_data=True,
