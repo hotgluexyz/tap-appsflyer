@@ -39,8 +39,8 @@ class AppsflyerClient():
 
     def __init__(self, config):
         self.config = config
-        self.base_url = "https://hq.appsflyer.com"
-        self.base_url_path = "export/{app_id}"
+        self.base_url = "https://hq1.appsflyer.com/api"
+        self.base_url_path = "raw-data/export/app/{app_id}"
     
 
     def _get_request_intervals(self,report_name,from_datetime,to_datetime):
@@ -85,7 +85,9 @@ class AppsflyerClient():
 
         if "user_agent" in self.config:
             headers["User-Agent"] = self.config["user_agent"]
-
+            
+        headers["authorization"] = f"Bearer {str(self.config.get('api_token', self.config.get('api_key')))}"
+        # headers["Accept"] = "text/csv"
         req = requests.Request("GET", url, params=params, headers=headers).prepare()
         LOGGER.info("GET {0} | Date interval: from {1} to {2}".format(
             url,params["from"],params["to"]))
@@ -113,7 +115,6 @@ class AppsflyerClient():
         params = dict()
         params["from"] = from_datetime.strftime("%Y-%m-%d %H:%M")
         params["to"] = to_datetime.strftime("%Y-%m-%d %H:%M")
-        params["api_token"] = self.config["api_token"]
         
         return params
 
