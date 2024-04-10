@@ -86,7 +86,7 @@ class AppsflyerClient():
         if "user_agent" in self.config:
             headers["User-Agent"] = self.config["user_agent"]
             
-        headers["authorization"] = f"Bearer {str(self.config.get('api_token'))}"
+        headers["authorization"] = f"Bearer {str(self.config.get('api_token', self.config.get('api_key')))}"
         # headers["Accept"] = "text/csv"
         req = requests.Request("GET", url, params=params, headers=headers).prepare()
         LOGGER.info("GET {0} | Date interval: from {1} to {2}".format(
