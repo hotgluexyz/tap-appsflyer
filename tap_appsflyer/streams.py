@@ -1,6 +1,7 @@
 import singer
 from .transform import *
 from datetime import datetime, timedelta, timezone
+from dateutil.parser import parse
 
 LOGGER = singer.get_logger()
 RAW_BOOKMARK_DATE_FORMAT = '%Y-%m-%dT%H:%MZ'
@@ -15,12 +16,18 @@ class Stream:
 
 class RawData(Stream):
 
+    def get_report_start_time(self):
+        return singer.utils.now().replace(hour=0,minute=0,second=0,microsecond=0) - timedelta(days=RAW_REPORTS_API_MAX_WINDOW)
     def _get_start_time(self,state,bookmark_format):
         # if start_date is in the config use it, if not, get 90 days ago
         if "start_date" in self.config:
-            start_date = datetime.strptime(self.config["start_date"],RAW_BOOKMARK_DATE_FORMAT)
+            try:
+                start_date = datetime.strptime(self.config["start_date"],RAW_BOOKMARK_DATE_FORMAT)
+            except ValueError:
+                start_date = parse(self.config["start_date"])
         else:
             start_date = singer.utils.now().replace(hour=0,minute=0,second=0,microsecond=0) - timedelta(days=RAW_REPORTS_API_MAX_WINDOW)
+
 
         # get bookmark
         start_time_str = singer.get_bookmark(
@@ -54,7 +61,16 @@ class RawData(Stream):
         # Bookmark is in timezone UTC
         start_time = self._get_start_time(state,RAW_BOOKMARK_DATE_FORMAT)
         end_time = self._get_end_time(RAW_BOOKMARK_DATE_FORMAT)
-
+        
+        # Check if start_time is more than 90 days ago.
+        # If so, set a new start date to avoid hitting the API limit.
+        today = datetime.today()
+        if (today.replace(tzinfo=None) - start_time.replace(tzinfo=None)).days > RAW_REPORTS_API_MAX_WINDOW:
+            # This condition indicates that the start_time is more than 90 days ago.
+            # In this case, it is safer to set a new start date to avoid hitting the API limit.
+            LOGGER.error(f"Start time is greater than {RAW_REPORTS_API_MAX_WINDOW} days ago for {self.report_name}. Setting new start date")
+            start_time = self.get_report_start_time()
+                
         for record in self.client.get_raw_data(
             self.report_name,
             self.report_version,
