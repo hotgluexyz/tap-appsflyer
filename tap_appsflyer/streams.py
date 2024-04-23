@@ -1,6 +1,7 @@
 import singer
 from .transform import *
 from datetime import datetime, timedelta, timezone
+from dateutil.parser import parse
 
 LOGGER = singer.get_logger()
 RAW_BOOKMARK_DATE_FORMAT = '%Y-%m-%dT%H:%MZ'
@@ -20,9 +21,13 @@ class RawData(Stream):
     def _get_start_time(self,state,bookmark_format):
         # if start_date is in the config use it, if not, get 90 days ago
         if "start_date" in self.config:
-            start_date = datetime.strptime(self.config["start_date"],RAW_BOOKMARK_DATE_FORMAT)
+            try:
+                start_date = datetime.strptime(self.config["start_date"],RAW_BOOKMARK_DATE_FORMAT)
+            except ValueError:
+                start_date = parse(self.config["start_date"])
         else:
-            start_date = self.get_report_start_time()
+            start_date = singer.utils.now().replace(hour=0,minute=0,second=0,microsecond=0) - timedelta(days=RAW_REPORTS_API_MAX_WINDOW)
+
 
         # get bookmark
         start_time_str = singer.get_bookmark(
